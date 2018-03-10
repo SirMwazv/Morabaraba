@@ -43,7 +43,7 @@ let findPos x =
     | Onboard (_,pos) -> pos
     | Flying (_,pos) -> pos
 
-let board (state:GameState) =
+let printBoard (state:GameState) =
     let cowsGridList = 
        List.map (fun cow -> cow, findPos cow) (state.CurrentPlayer.Cows @ state.NextPlayer.Cows)
     let myColor position =
@@ -79,6 +79,21 @@ let board (state:GameState) =
     -."\n| /'         |        \. |"
     -."\n"; +.A1; -."----------"; +.D1; -."----------"; +.G1
     -."\n"
+
+let rec runGame =
+    //Setup Player Names 
+    Console.WriteLine("Player1 Choose your Nickname") 
+    let p1Name = Console.ReadLine()
+    Console.WriteLine("Player2 Choose your Nickname") 
+    let p2Name = Console.ReadLine()
+    Console.Clear()
+    // Create Players and Game state
+    let player1 = {Cows = []; MyMills = []; Alias = p1Name; Color = PlayerColor.Dark}
+    let player2 = {Cows = []; MyMills = []; Alias = p2Name; Color = PlayerColor.Light}
+    let newGame = {GameState.CurrentPlayer = player1; NextPlayer = player2; isDraw = 0}
+    let rec innerGame
+
+    printBoard newGame
 
 
 
