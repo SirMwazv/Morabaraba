@@ -9,6 +9,32 @@ type Position =
 | F2 | F4 | F6
 | G1 | G4 | G7
 
+let millCombos =
+    [   // horizontal mills
+        A7,D7,G7
+        B6,D6,F6
+        C5,D5,E5
+        A4,B4,C4
+        E4,F4,G4
+        C3,D3,E3
+        B2,D2,F2
+        A1,D1,G1
+        // vertical mills
+        A7,A4,A1
+        B6,B4,B2
+        C5,C4,C3
+        D7,D6,D5
+        D3,D2,D1
+        E5,E4,E3
+        F6,F4,F2
+        G7,G4,G1
+        // diagonal mills
+        A7,B6,C5
+        A1,B2,C3
+        E5,F6,G7
+        E3,F2,G1
+    ]
+
 type PlayerColor = 
 | Dark
 | Light
@@ -33,8 +59,8 @@ type Player = {
 }
 
 type GameState = {
-    CurrentPlayer : Player
-    NextPlayer : Player
+    Player1 : Player
+    Player2 : Player
     isDraw : int
 }
 
@@ -43,9 +69,10 @@ let findPos x =
     | Onboard (_,pos) -> pos
     | Flying (_,pos) -> pos
 
+
 let printBoard (state:GameState) =
     let cowsGridList = 
-       List.map (fun cow -> cow, findPos cow) (state.CurrentPlayer.Cows @ state.NextPlayer.Cows)
+       List.map (fun cow -> cow, findPos cow) (state.Player1.Cows @ state.Player2.Cows)
     let myColor position =
        let col =            
            List.tryPick (fun (cow,pos) ->
@@ -87,28 +114,22 @@ let rec runGame =
     Console.WriteLine("Player2 Choose your Nickname") 
     let p2Name = Console.ReadLine()
     Console.Clear()
+
     // Create Players and Game state
     let player1 = {Cows = []; MyMills = []; Alias = p1Name; Color = PlayerColor.Dark}
     let player2 = {Cows = []; MyMills = []; Alias = p2Name; Color = PlayerColor.Light}
-    let newGame = {GameState.CurrentPlayer = player1; NextPlayer = player2; isDraw = 0}
-    let rec innerGame
-
+    let newGame = {GameState.Player1 = player1; Player2 = player2; isDraw = 0}
     printBoard newGame
 
-
-
-
-
-     (* +.A7; -."----------" +D7; -."----------" +G7 
-     -."| `.        |         ,' | 
-     |   b6------d6------f6   | 
-     |   | `.     |    ,' |   | 
-     |   |   c5--d5--e5   |   | 
-     |   |   |        |   |   | 
-     a4--b4--c4      e4--f4--g4 
-     |   |   |        |   |   | 
-     |   |   c3--d3--e3   |   | 
-     |   | ,'    |     `. |   | 
-     |   b2------d2------f2   | 
-     | ,'         |        `. | 
-     a1----------d1----------g1  " *)
+    //Inner function to repeat game loop
+    let rec innerGame state =
+        printBoard state
+        let playerMove player = 
+            Console.WriteLine(sprintf "%s what is your move?" player.Alias) 
+            let move = 
+                let line = Console.ReadLine()
+                match Char.IsLetter line.[0] = true && Char.IsDigit line.[1] && String.length line = 2 with     //validate line input 
+                | true -> 
+                | _ -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as displayed above.")
+            
+    
