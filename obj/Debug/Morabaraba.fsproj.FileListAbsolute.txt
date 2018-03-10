@@ -1,0 +1,8 @@
+J:\CS3\Morabaraba\bin\Debug\Morabaraba.exe.config
+J:\CS3\Morabaraba\bin\Debug\Morabaraba.XML
+J:\CS3\Morabaraba\bin\Debug\Morabaraba.exe
+J:\CS3\Morabaraba\bin\Debug\Morabaraba.pdb
+J:\CS3\Morabaraba\bin\Debug\FSharp.Core.dll
+J:\CS3\Morabaraba\bin\Debug\FSharp.Core.xml
+J:\CS3\Morabaraba\obj\Debug\Morabaraba.exe
+J:\CS3\Morabaraba\obj\Debug\Morabaraba.pdb

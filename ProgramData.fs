@@ -1,5 +1,5 @@
 ﻿module ProgramData
-
+open System
 type Position =
 | A1 | A4 | A7
 | B2 | B4 | B6
@@ -12,6 +12,12 @@ type Position =
 type PlayerColor = 
 | Dark
 | Light
+| Neutral 
+
+let darkColor = System.ConsoleColor.DarkBlue
+let darkColorFly = System.ConsoleColor.Blue
+let lightColor = System.ConsoleColor.DarkGreen
+let lightColorFly = System.ConsoleColor.Green
 
 type Cow =
 | Onboard of PlayerColor * Position 
@@ -26,5 +32,54 @@ type Player = {
     MyMills : (Position*Position*Position) list
 }
 
+type GameState = {
+    CurrentPlayer : Player
+    NextPlayer : Player
+    isDraw : int
+}
+
+let findPos x = 
+    match x with 
+    | Onboard (_,pos) -> pos
+    | Flying (_,pos) -> pos
 
 
+   
+
+
+
+
+
+let board (state:GameState) =
+     let cowsGridList = 
+        List.map (fun cow -> cow, findPos cow) (state.CurrentPlayer.Cows @ state.NextPlayer.Cows)
+     let myColor position =
+        let col = 
+            cowsGridList
+            |> List.tryPick (fun (cow,pos) ->
+                match position = pos with
+                | true -> match cow with
+                            | Onboard (Dark, pos) -> Some darkColor
+                            | Onboard (Light, pos) -> Some lightColor
+                            | Flying (Dark, pos) -> Some lightColorFly
+                            | Flying (Light, pos) -> Some darkColorFly
+                            | _ -> None
+                | _ -> None
+            ) 
+        defaultArg col System.ConsoleColor.DarkMagenta
+     let (~+.) pos = 
+        Console.ForegroundColor <- myColor pos
+        printf "%A" pos
+     +.A7;"----------d7----------g7 
+     | `.        |         ,' | 
+     |   b6------d6------f6   | 
+     |   | `.     |    ,' |   | 
+     |   |   c5--d5--e5   |   | 
+     |   |   |        |   |   | 
+     a4--b4--c4      e4--f4--g4 
+     |   |   |        |   |   | 
+     |   |   c3--d3--e3   |   | 
+     |   | ,'    |     `. |   | 
+     |   b2------d2------f2   | 
+     | ,'         |        `. | 
+     a1----------d1----------g1  "
