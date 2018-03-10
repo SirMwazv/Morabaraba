@@ -9,6 +9,35 @@ type Position =
 | F2 | F4 | F6
 | G1 | G4 | G7
 
+let strToPos pos =
+    match pos with
+    | "A1" -> A1
+    | "A4" -> A4
+    | "A7" -> A7
+    | "B2" -> B2
+    | "B4" -> B4
+    | "B6" -> B6
+    | "C3" -> C3
+    | "C4" -> C4
+    | "C5" -> C5
+    | "D1" -> D1
+    | "D2" -> D2
+    | "D3" -> D3
+    | "D5" -> D5
+    | "D6" -> D6
+    | "D7" -> D7
+    | "E3" -> E3
+    | "E4" -> E4
+    | "E5" -> E5
+    | "F2" -> F2
+    | "F4" -> F4
+    | "F6" -> F6
+    | "G1" -> G1
+    | "G4" -> G4
+    | "G7" -> G7
+    | _ -> failwith "Error, This is not a position!"
+
+
 let millCombos =
     [   // horizontal mills
         A7,D7,G7
@@ -124,12 +153,19 @@ let rec runGame =
     //Inner function to repeat game loop
     let rec innerGame state =
         printBoard state
-        let playerMove player = 
+        let playerMove player =     //function that manages each players turn 
             Console.WriteLine(sprintf "%s what is your move?" player.Alias) 
-            let move = 
-                let line = Console.ReadLine()
-                match Char.IsLetter line.[0] = true && Char.IsDigit line.[1] && String.length line = 2 with     //validate line input 
-                | true -> 
-                | _ -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as displayed above.")
+            let line = 
+                match (Char.IsLetter (Console.ReadLine().[0])) && (Char.IsDigit (Console.ReadLine().[1])) && (String.length (Console.ReadLine()) = 2) with     //validate line input 
+                | true -> Console.ReadLine().ToUpper()
+                | _ -> ""   //read input from player
+            match line with
+            | "" -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input empty show error message
+            let newCow = Onboard (player.Color,(strToPos line))
+            newCow::player.Cows
+            
+        
+    
+                
             
     
