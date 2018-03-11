@@ -1,5 +1,7 @@
 ﻿module ProgramData
 open System
+
+//Discriminated Union to represent each grid position 
 type Position =
 | A1 | A4 | A7
 | B2 | B4 | B6
@@ -9,6 +11,7 @@ type Position =
 | F2 | F4 | F6
 | G1 | G4 | G7
 
+//helper function to convert string represenation of grid position to discriminated union data type
 let strToPos pos =
     match pos with
     | "A1" -> A1
@@ -37,7 +40,7 @@ let strToPos pos =
     | "G7" -> G7
     | _ -> failwith "Error, This is not a position!"
 
-
+//list of all possible cominations for mills on the board
 let millCombos =
     [   // horizontal mills
         A7,D7,G7
@@ -64,15 +67,16 @@ let millCombos =
         E3,F2,G1
     ]
 
+//type representing the player colours 
 type PlayerColor = 
 | Dark
 | Light
 | Neutral 
 
-let darkColor = System.ConsoleColor.DarkBlue
-let darkColorFly = System.ConsoleColor.Blue
-let lightColor = System.ConsoleColor.DarkGreen
-let lightColorFly = System.ConsoleColor.Green
+let darkColor = System.ConsoleColor.Cyan
+let darkColorFly = System.ConsoleColor.DarkCyan
+let lightColor = System.ConsoleColor.Red
+let lightColorFly = System.ConsoleColor.DarkRed
 
 type Cow =
 | Onboard of PlayerColor * Position 
@@ -97,6 +101,25 @@ type GameState = {
     isDraw : int
     phase : Phase
 }
+
+//function to validate input 
+let isValid str phase : bool =
+    match phase with  //check if in placing phase
+    | Placing ->
+        match (String.length str = 2) with
+        | true -> 
+            match Char.IsLetter str.[0] &&  Char.IsDigit str.[1] with
+            |true -> true
+            |false -> false
+        |_ -> false
+    | Moving ->     //check if in moving phase
+        match (String.length str = 5) with
+        | true -> 
+            match Char.IsLetter str.[0] &&  Char.IsDigit str.[1] && Char.IsLetter str.[3] &&  Char.IsDigit str.[4] with
+            |true -> true
+            |_ -> false
+        |_ -> false
+    |_ -> false
 
 let findPos x = 
     match x with 
@@ -147,54 +170,23 @@ let runGame =
     let innerGame state =   
         let rec playerMove player currentState =     //function that manages each players turn 
             Console.WriteLine(sprintf "%s what is your move?" player.Alias) //ask for player move
-            let input = Console.ReadLine(); //read line
-
-            //function to validate input 
-            //let isValid str phase : bool =
-            //    match phase with  //check if in placing phase
-            //    | Placing ->
-            //        match (String.length str = 2) with
-            //        | true -> 
-            //            match Char.IsLetter str.[0] &&  Char.IsDigit str.[1] with
-            //            |true -> true
-            //            |false -> false
-            //        |_ -> false
-            //    | Moving ->     //check if in moving phase
-            //        match (String.length str = 5) with
-            //        | true -> 
-            //            match Char.IsLetter str.[0] &&  Char.IsDigit str.[1] && Char.IsLetter str.[3] &&  Char.IsDigit str.[4] with
-            //            |true -> true
-            //            |_ -> false
-            //        |_ -> false
-            //    |_ -> false
-
-            let isValid str : bool =
-                match String.length str with
-                |2 ->
-                    match Char.IsLetter str.[0] &&  Char.IsDigit str.[1] with
-                        |true -> true
-                        |_ -> false
-                |5 -> 
-                    match Char.IsLetter str.[0] &&  Char.IsDigit str.[1] && Char.IsLetter str.[3] &&  Char.IsDigit str.[4] with
-                        |true -> true
-                        |_ -> false
-                |_ -> false
-                   
-
+            let input = Console.ReadLine(); //read line                
+            
             //get line of input from console and validate it/print any errors
             let line = 
-                match isValid input with     //validate line input 
-                //match isValid input currentState.phase with     //validate line input
+                match isValid input currentState.phase with     //validate line input
                 | true -> input.ToUpper()
                 | _ -> ""   //read input from player
-            let printErr =  //print an error IF input is invalid 
+            let printErr () =  //print an error IF input is invalid 
                 match line with
-                | "" -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input empty show error message
+                | "" -> 
+                    Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input empty show error message
+                    playerMove player currentState
                 | _ -> ()
-            printErr 
+            printErr ()
 
             //update player and game states 
-            let newCow = Onboard (player.Color,(strToPos line))         //create new cow    
+            let newCow = Onboard (player.Color,strToPos line)         //create new cow                
             let updatePlayer = {player with Cows = newCow::player.Cows} //add cow to players list of cows
             let updateState =           //'update' gamestate 
                 match player.Color with 
@@ -223,5 +215,5 @@ let runGame =
     let newGame = {GameState.Player1 = player1; Player2 = player2; isDraw = 0; phase = Placing}
     printBoard newGame    
     innerGame newGame
-    Console.WriteLine("This should not happen")
+    Console.WriteLine("Oh, oh! This should not happen")
     
