@@ -100,6 +100,7 @@ let findPos x =
 
 
 let printBoard (state:GameState) =
+    Console.Clear()
     let cowsGridList = 
        List.map (fun cow -> cow, findPos cow) (state.Player1.Cows @ state.Player2.Cows)
     let myColor position =
@@ -136,7 +137,34 @@ let printBoard (state:GameState) =
     -."\n"; +.A1; -."----------"; +.D1; -."----------"; +.G1
     -."\n"
 
-let rec runGame =
+let runGame =
+    //Inner function to repeat game loop
+    let rec innerGame state =   
+        let rec playerMove player currentState =     //function that manages each players turn 
+            Console.WriteLine(sprintf "%s what is your move?" player.Alias)
+            let input = Console.ReadLine();
+            let line = 
+                match (Char.IsLetter (input.[0])) && (Char.IsDigit (input.[1])) && (String.length input = 2) with     //validate line input 
+                | true -> input.ToUpper()
+                | _ -> ""   //read input from player
+            //match line with
+            //| "" -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input empty show error message
+
+            let newCow = Onboard (player.Color,(strToPos line))         //create new cow    
+            let updatePlayer = {player with Cows = newCow::player.Cows} //add cow to players list of cows
+            let updateState =           //'update' gamestate 
+                match player.Color with 
+                | Dark -> {state with Player1 = updatePlayer; Player2 = currentState.Player2}
+                | Light -> {state with Player1 = currentState.Player1; Player2 = updatePlayer}
+                | _ -> failwith "Critical Error. No Colours here"
+            printBoard updateState  //print board with changes 
+            let nextTurn () =
+                match player.Color with 
+                | Dark -> playerMove updateState.Player2 updateState
+                | Light -> playerMove updateState.Player1 updateState
+                | _ -> failwith "Critical Error. Failed to switch turns."
+            nextTurn ()
+        playerMove state.Player1 state
     //Setup Player Names 
     Console.WriteLine("Player1 Choose your Nickname") 
     let p1Name = Console.ReadLine()
@@ -144,28 +172,11 @@ let rec runGame =
     let p2Name = Console.ReadLine()
     Console.Clear()
 
-    // Create Players and Game state
+    //Initiate Players and Game state
     let player1 = {Cows = []; MyMills = []; Alias = p1Name; Color = PlayerColor.Dark}
     let player2 = {Cows = []; MyMills = []; Alias = p2Name; Color = PlayerColor.Light}
     let newGame = {GameState.Player1 = player1; Player2 = player2; isDraw = 0}
-    printBoard newGame
-
-    //Inner function to repeat game loop
-    let rec innerGame state =
-        printBoard state
-        let playerMove player =     //function that manages each players turn 
-            Console.WriteLine(sprintf "%s what is your move?" player.Alias) 
-            let line = 
-                match (Char.IsLetter (Console.ReadLine().[0])) && (Char.IsDigit (Console.ReadLine().[1])) && (String.length (Console.ReadLine()) = 2) with     //validate line input 
-                | true -> Console.ReadLine().ToUpper()
-                | _ -> ""   //read input from player
-            match line with
-            | "" -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input empty show error message
-            let newCow = Onboard (player.Color,(strToPos line))
-            newCow::player.Cows
-            
-        
-    
-                
-            
+    printBoard newGame    
+    innerGame newGame
+    Console.WriteLine("This should not happen")
     

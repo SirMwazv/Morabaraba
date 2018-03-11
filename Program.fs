@@ -7,6 +7,6 @@ open System
 
 [<EntryPoint>]
 let main argv =  
-    runGame 
+    runGame
     Console.ReadLine()
     0 // return an integer exit code
