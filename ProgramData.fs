@@ -87,10 +87,15 @@ type Player = {
     MyMills : (Position*Position*Position) list
 }
 
+type Phase =
+| Placing 
+| Moving 
+
 type GameState = {
     Player1 : Player
     Player2 : Player
     isDraw : int
+    phase : Phase
 }
 
 let findPos x = 
@@ -139,17 +144,56 @@ let printBoard (state:GameState) =
 
 let runGame =
     //Inner function to repeat game loop
-    let rec innerGame state =   
+    let innerGame state =   
         let rec playerMove player currentState =     //function that manages each players turn 
-            Console.WriteLine(sprintf "%s what is your move?" player.Alias)
-            let input = Console.ReadLine();
+            Console.WriteLine(sprintf "%s what is your move?" player.Alias) //ask for player move
+            let input = Console.ReadLine(); //read line
+
+            //function to validate input 
+            //let isValid str phase : bool =
+            //    match phase with  //check if in placing phase
+            //    | Placing ->
+            //        match (String.length str = 2) with
+            //        | true -> 
+            //            match Char.IsLetter str.[0] &&  Char.IsDigit str.[1] with
+            //            |true -> true
+            //            |false -> false
+            //        |_ -> false
+            //    | Moving ->     //check if in moving phase
+            //        match (String.length str = 5) with
+            //        | true -> 
+            //            match Char.IsLetter str.[0] &&  Char.IsDigit str.[1] && Char.IsLetter str.[3] &&  Char.IsDigit str.[4] with
+            //            |true -> true
+            //            |_ -> false
+            //        |_ -> false
+            //    |_ -> false
+
+            let isValid str : bool =
+                match String.length str with
+                |2 ->
+                    match Char.IsLetter str.[0] &&  Char.IsDigit str.[1] with
+                        |true -> true
+                        |_ -> false
+                |5 -> 
+                    match Char.IsLetter str.[0] &&  Char.IsDigit str.[1] && Char.IsLetter str.[3] &&  Char.IsDigit str.[4] with
+                        |true -> true
+                        |_ -> false
+                |_ -> false
+                   
+
+            //get line of input from console and validate it/print any errors
             let line = 
-                match (Char.IsLetter (input.[0])) && (Char.IsDigit (input.[1])) && (String.length input = 2) with     //validate line input 
+                match isValid input with     //validate line input 
+                //match isValid input currentState.phase with     //validate line input
                 | true -> input.ToUpper()
                 | _ -> ""   //read input from player
-            //match line with
-            //| "" -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input empty show error message
+            let printErr =  //print an error IF input is invalid 
+                match line with
+                | "" -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input empty show error message
+                | _ -> ()
+            printErr 
 
+            //update player and game states 
             let newCow = Onboard (player.Color,(strToPos line))         //create new cow    
             let updatePlayer = {player with Cows = newCow::player.Cows} //add cow to players list of cows
             let updateState =           //'update' gamestate 
@@ -166,16 +210,17 @@ let runGame =
             nextTurn ()
         playerMove state.Player1 state
     //Setup Player Names 
-    Console.WriteLine("Player1 Choose your Nickname") 
-    let p1Name = Console.ReadLine()
-    Console.WriteLine("Player2 Choose your Nickname") 
-    let p2Name = Console.ReadLine()
-    Console.Clear()
-
+    //Console.WriteLine("Player1 Choose your Nickname") 
+    //let p1Name = Console.ReadLine()
+    //Console.WriteLine("Player2 Choose your Nickname") 
+    //let p2Name = Console.ReadLine()
+    //Console.Clear()
+    let player1 = {Cows = []; MyMills = []; Alias = "1"; Color = PlayerColor.Dark}
+    let player2 = {Cows = []; MyMills = []; Alias = "2"; Color = PlayerColor.Light}
     //Initiate Players and Game state
-    let player1 = {Cows = []; MyMills = []; Alias = p1Name; Color = PlayerColor.Dark}
-    let player2 = {Cows = []; MyMills = []; Alias = p2Name; Color = PlayerColor.Light}
-    let newGame = {GameState.Player1 = player1; Player2 = player2; isDraw = 0}
+    //let player1 = {Cows = []; MyMills = []; Alias = p1Name; Color = PlayerColor.Dark}
+    //let player2 = {Cows = []; MyMills = []; Alias = p2Name; Color = PlayerColor.Light}
+    let newGame = {GameState.Player1 = player1; Player2 = player2; isDraw = 0; phase = Placing}
     printBoard newGame    
     innerGame newGame
     Console.WriteLine("This should not happen")
