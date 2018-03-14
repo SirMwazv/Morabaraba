@@ -123,12 +123,13 @@ let isValid str phase : bool =
         |_ -> false
     |_ -> false
 
+//function to extract position form cow union
 let findPos x = 
     match x with 
     | Onboard (_,pos) -> pos
     | Flying (_,pos) -> pos
 
-
+//function to print the board based on game state 
 let printBoard (state:GameState) =
     Console.Clear()
     let cowsGridList = 
@@ -166,7 +167,8 @@ let printBoard (state:GameState) =
     -."\n| /'         |        \. |"
     -."\n"; +.A1; -."----------"; +.D1; -."----------"; +.G1
     -."\n"
-//Placing Phase Functions
+
+//Placing Phase Functions---------------------------------------
 
 //Function to palce players
 let rec placePiece player state = 
@@ -199,19 +201,41 @@ let rec placePiece player state =
 
     //update player and game states 
     let newCow = Onboard (player.Color,strToPos input)         //create new cow  
-    let increment = player.PlacedCows + 1
+    let increment = player.PlacedCows + 1   //increment number of cows placed 
     let updatePlayer = {player with Cows = newCow::player.Cows; PlacedCows = increment} //add cow to players list of cows
-    let newState = 
+    let newState =      //determine which player just made a move and update thier state 
             match state.Player1 with
             | player -> {state with Player1 = updatePlayer}
             |_ -> {state with Player2 = updatePlayer}        
     newState
 
-let shootCows player state  = 
-    match 
+//function to shoot cows 
+let rec shootCow player state  = 
+    let shooter = player
+    let shootee =
+        match player = state.Player1 with 
+        | true -> state.Player2
+        | _ -> state.Player1
+    Console.WriteLine(sprintf "Mill! %s please choose which cow you want to shoot" player.Alias)    //prompt for input 
+    let input = Console.ReadLine()
+    match isValid input Placing with    //validate input 
+    |true -> ()
+    | _ -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input invalid show error message
+           shootCow player state
 
+    let isShootable = 
+        match player = state.Player1 with                    //make sure cow exists
+        | true ->                       //player1 is shooting 
+            List.exists (fun x-> function  = strToPos input ) state.Player2.Cows  //checkfor cow in opponent list
+        | _ ->                          //player2 is shooting 
+            List.exists (findPos = strToPos input ) state.Player1.Cows  //checkfor cow in opponent list
+    match isShootable with 
+    |true -> List.filter () p
+
+
+//function to check if a mill has been made on the board
 let checkMill player state =
-    let playerPos = List.map (fun split -> match split with |Onboard (_,p) -> p) player.Cows //get a list of all positions the player has 
+    let playerPos = List.map findPos player.Cows //get a list of all positions the player has 
     List.iter (fun x ->
                     match x with
                     |a,b,c -> 
@@ -220,12 +244,11 @@ let checkMill player state =
                             List.exists (fun y ->y = b) playerPos &&
                             List.exists (fun y ->y = c) playerPos with
                             | true ->  shootCow player state
+                            | _ -> ()
                         
-    ) millCombos
+    ) millCombos  
     
-    
-    
-
+  
 let rec runPlacingPhase gameState =
     printBoard gameState    //print initial board state 
 
@@ -239,7 +262,7 @@ let rec runPlacingPhase gameState =
 
     checkPhase player2turn  //check if game should move to next phase
     runPlacingPhase  player2turn   //run next round of placing 
-//---> END Placing Phase Functions
+//---> END Placing Phase Functions---------------------------------------
 
 let intializeGame =
 
@@ -258,10 +281,10 @@ let intializeGame =
 
     //Initialize Data
     //Initiate Players and Game state
-    //let player1 = {Cows = []; MyMills = []; Alias = p1Name; Color = PlayerColor.Dark}
-    //let player2 = {Cows = []; MyMills = []; Alias = p2Name; Color = PlayerColor.Light}
-    let player1 = {Cows = []; MyMills = []; Alias = "1"; Color = PlayerColor.Dark}
-    let player2 = {Cows = []; MyMills = []; Alias = "2"; Color = PlayerColor.Light}
+    //let player1 = {Cows = []; MyMills = []; Alias = p1Name; Color = PlayerColor.Dark; PlacedCows = 0}
+    //let player2 = {Cows = []; MyMills = []; Alias = p2Name; Color = PlayerColor.Light; PlacedCows = 0}
+    let player1 = {Cows = []; MyMills = []; Alias = "1"; Color = PlayerColor.Dark; PlacedCows = 0}
+    let player2 = {Cows = []; MyMills = []; Alias = "2"; Color = PlayerColor.Light; PlacedCows = 0}
     let newGame = {GameState.Player1 = player1; Player2 = player2; isDraw = 0; phase = Placing}
     runPlacingPhase newGame
    
