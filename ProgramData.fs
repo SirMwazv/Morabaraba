@@ -10,6 +10,7 @@ type Position =
 | E3 | E4 | E5
 | F2 | F4 | F6
 | G1 | G4 | G7
+|XX // denotes invalid position 
 
 //helper function to convert string represenation of grid position to discriminated union data type
 let strToPos pos =
@@ -38,7 +39,7 @@ let strToPos pos =
     | "G1" -> G1
     | "G4" -> G4
     | "G7" -> G7
-    | _ -> failwith "Error, This is not a position!"
+    | _ -> XX
 
 //list of all possible cominations for mills on the board
 let millCombos =
@@ -89,6 +90,7 @@ type Player = {
     Color : PlayerColor
     Cows : Cow list
     MyMills : (Position*Position*Position) list
+    PlacedCows : int
 }
 
 type Phase =
@@ -164,35 +166,117 @@ let printBoard (state:GameState) =
     -."\n| /'         |        \. |"
     -."\n"; +.A1; -."----------"; +.D1; -."----------"; +.G1
     -."\n"
+//Placing Phase Functions
+
+//Function to palce players
+let rec placePiece player state = 
+    Console.WriteLine(sprintf "%s what is your move?" player.Alias) //ask for player move
+    let input = Console.ReadLine().ToUpper(); //read line
+
+    //inner function to check for valid input
+    let checkErr msg =  //print an error IF input is invalid 
+                match msg with
+                | "" -> 
+                    Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input empty show error message
+                    placePiece player state
+                | _ -> match isValid msg state.phase with
+                        | true -> state 
+                        | _ -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input invalid show error message  
+                               placePiece player state
+    (checkErr input) |> ignore  //execute 'input check'
+
+    //inner function to check for valid move 
+    let checkMove () = // check if position is already taken 
+        let myMove = Onboard (player.Color,strToPos input) 
+        match List.exists (fun x -> myMove = x) player.Cows with    //check if spot is taken
+        | true -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input invalid show error message  
+                  placePiece player state
+        | _ -> match strToPos input with        //check if position entered is valid 
+                | XX -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input invalid show error message  
+                        placePiece player state
+                | _ -> state
+    (checkMove ()) |> ignore //execute 'valid move' check 
+
+    //update player and game states 
+    let newCow = Onboard (player.Color,strToPos input)         //create new cow  
+    let increment = player.PlacedCows + 1
+    let updatePlayer = {player with Cows = newCow::player.Cows; PlacedCows = increment} //add cow to players list of cows
+    let newState = 
+            match state.Player1 with
+            | player -> {state with Player1 = updatePlayer}
+            |_ -> {state with Player2 = updatePlayer}        
+    newState
+
+let shootCows player state  = 
+    match 
+
+let checkMill player state =
+    let playerPos = List.map (fun split -> match split with |Onboard (_,p) -> p) player.Cows //get a list of all positions the player has 
+    List.iter (fun x ->
+                    match x with
+                    |a,b,c -> 
+                        match
+                            List.exists (fun y ->y = a) playerPos &&
+                            List.exists (fun y ->y = b) playerPos &&
+                            List.exists (fun y ->y = c) playerPos with
+                            | true ->  shootCow player state
+                        
+    ) millCombos
+    
+    
+    
+
+let rec runPlacingPhase gameState =
+    printBoard gameState    //print initial board state 
+
+    let player1turn = (placePiece gameState.Player1 gameState)  //play player 1
+    printBoard player1turn  //update board
+    checkMill gameState.Player1 player1turn //check if a mill was made
+
+    let player2turn = (placePiece gameState.Player2 gameState) //play player 2
+    printBoard player2turn  //update board
+    checkMill gameState.Player2 player2turn //check if a mill was made
+
+    checkPhase player2turn  //check if game should move to next phase
+    runPlacingPhase  player2turn   //run next round of placing 
+//---> END Placing Phase Functions
+
+let intializeGame =
+
+    //Print Title  
+    Console.WriteLine("MORABARABA \n
+        Press Any Key to Start...
+    ")
+    Console.ReadKey() |> ignore
+
+    //Setup Player Names 
+    //Console.WriteLine("Player1 Choose your Nickname") 
+    //let p1Name = Console.ReadLine()
+    //Console.WriteLine("Player2 Choose your Nickname") 
+    //let p2Name = Console.ReadLine()
+    //Console.Clear()
+
+    //Initialize Data
+    //Initiate Players and Game state
+    //let player1 = {Cows = []; MyMills = []; Alias = p1Name; Color = PlayerColor.Dark}
+    //let player2 = {Cows = []; MyMills = []; Alias = p2Name; Color = PlayerColor.Light}
+    let player1 = {Cows = []; MyMills = []; Alias = "1"; Color = PlayerColor.Dark}
+    let player2 = {Cows = []; MyMills = []; Alias = "2"; Color = PlayerColor.Light}
+    let newGame = {GameState.Player1 = player1; Player2 = player2; isDraw = 0; phase = Placing}
+    runPlacingPhase newGame
+   
+
 
 let runGame =
     //Inner function to repeat game loop
     let innerGame state =   
-        let rec playerMove player currentState =     //function that manages each players turn 
-            Console.WriteLine(sprintf "%s what is your move?" player.Alias) //ask for player move
-            let input = Console.ReadLine(); //read line                
+                        
             
             //get line of input from console and validate it/print any errors
-            let printErr err =  //print an error IF input is invalid 
-                match err with
-                | "" -> 
-                    Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input empty show error message
-                    playerMove player currentState
-                | _ -> ()
-            let preCheck =
-                match input.ToUpper() with
-                | "A2" -> printErr ""
-                | _ -> ()
-            preCheck
-            let line =                
-                match isValid input currentState.phase with     //validate line input
-                | true -> input.ToUpper()
-                | _ -> ""   //read input from player            
-            printErr line
+            
+            
 
-            //update player and game states 
-            let newCow = Onboard (player.Color,strToPos line)         //create new cow                
-            let updatePlayer = {player with Cows = newCow::player.Cows} //add cow to players list of cows
+            
 
             //function to shoot cows
             let shootCows (a,b,c) = 
@@ -270,19 +354,10 @@ let runGame =
                 | _ -> failwith "Critical Error. Failed to switch turns."
             nextTurn ()
         playerMove state.Player1 state
-    //Setup Player Names 
-    //Console.WriteLine("Player1 Choose your Nickname") 
-    //let p1Name = Console.ReadLine()
-    //Console.WriteLine("Player2 Choose your Nickname") 
-    //let p2Name = Console.ReadLine()
-    //Console.Clear()
-    let player1 = {Cows = []; MyMills = []; Alias = "1"; Color = PlayerColor.Dark}
-    let player2 = {Cows = []; MyMills = []; Alias = "2"; Color = PlayerColor.Light}
-    //Initiate Players and Game state
-    //let player1 = {Cows = []; MyMills = []; Alias = p1Name; Color = PlayerColor.Dark}
-    //let player2 = {Cows = []; MyMills = []; Alias = p2Name; Color = PlayerColor.Light}
-    let newGame = {GameState.Player1 = player1; Player2 = player2; isDraw = 0; phase = Placing}
-    printBoard newGame    
-    innerGame newGame
-    Console.WriteLine("Oh, oh! This should not happen")
+    
+    
+    
+    
+     
+    
     
