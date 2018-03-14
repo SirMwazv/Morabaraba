@@ -208,7 +208,7 @@ let rec placePiece player state =
     newState
 
 let shootCows player state  = 
-    match 
+    
 
 let checkMill player state =
     let playerPos = List.map (fun split -> match split with |Onboard (_,p) -> p) player.Cows //get a list of all positions the player has 
