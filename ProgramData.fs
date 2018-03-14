@@ -12,7 +12,10 @@ type Position =
 | G1 | G4 | G7
 |XX // denotes invalid position 
 
-//helper function to convert string represenation of grid position to discriminated union data type
+/// <summary>
+/// Helper function to convert string represenation of grid position to Position data type
+/// </summary>
+/// <param name="pos">position represented as a string</param>
 let strToPos pos =
     match pos with
     | "A1" -> A1
@@ -72,31 +75,36 @@ let millCombos =
 type PlayerColor = 
 | Dark
 | Light
-| Neutral 
 
+//set player Colours 
 let darkColor = System.ConsoleColor.Cyan
 let darkColorFly = System.ConsoleColor.DarkCyan
 let lightColor = System.ConsoleColor.Red
 let lightColorFly = System.ConsoleColor.DarkRed
 
+//cow data type
 type Cow =
 | Onboard of PlayerColor * Position 
 | Flying of PlayerColor * Position
-| NotOnBoard of PlayerColor
-| Dead of PlayerColor
 
+//record holding player state
 type Player = {
     Alias : string
     Color : PlayerColor
     Cows : Cow list
     MyMills : (Position*Position*Position) list
     PlacedCows : int
+    DeadCows : int
 }
 
+//Data type to represent each phase of the game
 type Phase =
 | Placing 
-| Moving 
+| Moving
+| Won of Player
+| Draw 
 
+//record holding game state 
 type GameState = {
     Player1 : Player
     Player2 : Player
@@ -104,7 +112,22 @@ type GameState = {
     phase : Phase
 }
 
-//function to validate input 
+/// <summary>
+/// Helper function that extracts a list of positions from a list of cows
+/// </summary>
+/// <param name="cows">List of cows to get positons from </param>
+let getPosFromCows (cows: Cow List) : Position List =
+    List.map (fun x ->
+                    match x with
+                    | Onboard (_,p) -> p
+                    | Flying (_,p) -> p
+    ) cows
+
+/// <summary>
+/// function to validate input in correct format
+/// </summary>
+/// <param name="str">input to validate</param>
+/// <param name="phase">phase of the game</param>
 let isValid str phase : bool =
     match phase with  //check if in placing phase
     | Placing ->
@@ -123,13 +146,17 @@ let isValid str phase : bool =
         |_ -> false
     |_ -> false
 
-//function to extract position form cow union
-let findPos x = 
-    match x with 
+/// <summary>
+/// Function to extract position from cow union
+/// </summary>
+let findPos = function 
     | Onboard (_,pos) -> pos
     | Flying (_,pos) -> pos
 
-//function to print the board based on game state 
+/// <summary>
+/// Function to print the board based on game state 
+/// </summary>
+/// <param name="state">Current state of the game</param>
 let printBoard (state:GameState) =
     Console.Clear()
     let cowsGridList = 
@@ -168,12 +195,144 @@ let printBoard (state:GameState) =
     -."\n"; +.A1; -."----------"; +.D1; -."----------"; +.G1
     -."\n"
 
+let checkPhase state =
+    ()
+
 //Placing Phase Functions---------------------------------------
 
-//Function to palce players
+/// <summary>
+/// Function to check if players cow is in a mill
+/// </summary>
+/// <param name="pos">Position of cow in possible mill</param>
+/// <param name="cows">List of players cows</param>
+let inMill (pos: Position ) (cows : Cow List) = 
+    let cows = getPosFromCows cows
+    let myMills = List.map (fun (x,y,z) ->               //iterate through possible mills and check if player owns cows in all those positions 
+                            match 
+                                List.exists (fun a -> x = a) cows &&
+                                List.exists (fun a -> y = a) cows &&
+                                List.exists (fun a -> z = a) cows with                            
+                                | true -> true
+                                | _ -> false
+                    ) millCombos
+    match List.exists (fun x -> x = true) myMills with 
+    |true -> true
+    |_ -> false
+
+/// <summary>
+/// Function to shoot cows 
+/// </summary>
+/// <param name="player">Player who is the shooter</param>
+/// <param name="state">Current state of the game</param>
+let rec shootCow player state  = 
+    let shooter = player    
+    let shootee =       //determine player getting shot
+        match shooter = state.Player1 with 
+        | true -> state.Player2
+        | _ -> state.Player1
+    Console.WriteLine(sprintf "Mill! %s please choose which cow you want to shoot" shooter.Alias)    //prompt for input 
+    let input = Console.ReadLine().ToUpper()
+    let inputPos = strToPos input
+    (match isValid input Placing with    //validate input (conditions for shooting are the same as in 'Placing' phase)
+    |true -> state
+    | _ -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input invalid show error message
+           shootCow player state) |> ignore
+
+    let isShootable =   //value to show if cow is shootable (not in mill, empty cell or cow belonging to player)
+        //checkfor cow in opponent list
+        let canShoot = List.exists (fun x -> (findPos x) =  (inputPos) ) shootee.Cows            
+        //check if cow is in mill  
+        let notInMill = not (inMill inputPos shootee.Cows)
+        canShoot && notInMill
+
+    
+    (match isShootable with  //check if cow is shootable 
+    | false -> Console.WriteLine(sprintf "Error! %s, you Cannot Shoot this cow! Please Choose Another Cow." player.Alias)   //if not shootable display error and retry 
+               shootCow player state
+    |_ -> state)  |> ignore //else do nothing and carry on...
+
+    //"shoot" the cow (remove it from shootee's list and increment killed cows)
+    let newCows = List.filter (fun x ->     //filter the shootee's cows and remove the cow that has been shot 
+                        let pos = match x with              //get current cows position 
+                                    | Onboard (_,p) -> p
+                                    | Flying (_,p) -> p
+                        match pos = inputPos with
+                        | true -> false
+                        | _ -> true
+                    ) shootee.Cows
+
+    let increment = player.DeadCows + 1 //increment dead cows for player 
+    let updateShooteePlayer = {shootee with Cows = newCows; DeadCows = increment} //update the shootee player's state 
+
+    match shooter = state.Player1 with  //determine which player to update and then return game state 
+    | true -> {state with Player2 = updateShooteePlayer}
+    | _ -> {state with Player1 = updateShooteePlayer}
+
+/// <summary>
+/// Function to check if a mill has been made on the board by the player
+/// </summary>
+/// <param name="player">Player who is being checked for a mill</param>
+/// <param name="state">Current state of the game</param>
+let checkMill pos prevPlayerState newPlayerState state = //Note: Modify checkMill func to add new mill to shooter (have to change signature)
+        (*
+            Rules for mills
+            --> Mill cannot be reused 
+            --> Mill has to be broken and remade to be used again, can only be used after 1 turn skipped
+            --> Only One mill can shoot at a time regardless of how many mills were made in one move 
+
+            Algorithm
+            Get list of all mills player had before moving 
+            Get list of mills player has after moving 
+            Compare the two and if new mills found return true 
+        *)
+        let playerPos = List.map findPos newPlayerState.Cows //get a list of all positions of the cows the player has 
+        let prevMills = prevPlayerState.MyMills     //mills player had before moving 
+        let nextMills =                             //mills player has after moving 
+            List.filter (fun x -> List.exists (fun y->  //filter out mills i already have 
+                                                x=y
+                                    ) prevMills
+                        ) millCombos  
+        let isUsedMill =            //check if mill already exists in players list
+            List.exists ( fun x ->
+                            List.exists (fun y -> x=y) millCombos
+            ) newPlayerState.MyMills        
+
+        let checkForMill = 
+                            List.map (fun x ->       //iterate through mill combos and check if a mill exists that a player has made
+                                    match x with
+                                    |a,b,c -> 
+                                        match
+                                            List.exists (fun y ->y = a) playerPos &&
+                                            List.exists (fun y ->y = b) playerPos &&
+                                            List.exists (fun y ->y = c) playerPos with
+                                            | true ->  true
+                                            | _ -> false                        
+                            ) millCombos
+    
+        let millAlreadyUsed =       //make sure that mills aren't being reused (mills already made previously and mills broken in the last round) 
+            //let isAlreadyMade =
+            //    match List.map (fun (x,y,z) -> 
+            //        List.exists ()
+            //    ) player.MyMills with
+            true
+
+        match (List.exists (fun x -> x = true) checkForMill) && not millAlreadyUsed with // if a mill has been made then return true else return false 
+        | true -> true
+        | _ -> false
+
+/// <summary>
+/// Function to palce players
+/// </summary>
+/// <param name="player">Player who is placing cows</param>
+/// <param name="state">Current state of the game</param>
 let rec placePiece player state = 
+    let opponent =
+        match player = state.Player1 with
+        | true -> state.Player2
+        |_ -> state.Player1
     Console.WriteLine(sprintf "%s what is your move?" player.Alias) //ask for player move
     let input = Console.ReadLine().ToUpper(); //read line
+    let inputPos = strToPos input
 
     //inner function to check for valid input
     let checkErr msg =  //print an error IF input is invalid 
@@ -189,83 +348,61 @@ let rec placePiece player state =
 
     //inner function to check for valid move 
     let checkMove () = // check if position is already taken 
-        let myMove = Onboard (player.Color,strToPos input) 
-        match List.exists (fun x -> myMove = x) player.Cows with    //check if spot is taken
-        | true -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input invalid show error message  
+        let myMove = Onboard (player.Color,inputPos) //my cow
+        let myOpponentMove = Onboard (opponent.Color, inputPos) //opponents cow
+        match (List.exists (fun x -> myMove = x) player.Cows) && (List.exists (fun x -> myOpponentMove = x) opponent.Cows) with    //check if spot is taken
+        | true -> Console.WriteLine("Invalid Move!! Please type in a correct grid position that is free as indicated above.")    //if input invalid show error message  
                   placePiece player state
-        | _ -> match strToPos input with        //check if position entered is valid 
+        | _ -> match inputPos with        //check if position entered is valid 
                 | XX -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input invalid show error message  
                         placePiece player state
                 | _ -> state
-    (checkMove ()) |> ignore //execute 'valid move' check 
+    checkMove () |> ignore //execute 'valid move' check 
 
     //update player and game states 
-    let newCow = Onboard (player.Color,strToPos input)         //create new cow  
+    let newCow = Onboard (player.Color, inputPos)         //create new cow  
     let increment = player.PlacedCows + 1   //increment number of cows placed 
     let updatePlayer = {player with Cows = newCow::player.Cows; PlacedCows = increment} //add cow to players list of cows
     let newState =      //determine which player just made a move and update thier state 
             match state.Player1 with
             | player -> {state with Player1 = updatePlayer}
             |_ -> {state with Player2 = updatePlayer}        
-    newState
+    printBoard newState //update board with new game state 
 
-//function to shoot cows 
-let rec shootCow player state  = 
-    let shooter = player
-    let shootee =
-        match player = state.Player1 with 
-        | true -> state.Player2
-        | _ -> state.Player1
-    Console.WriteLine(sprintf "Mill! %s please choose which cow you want to shoot" player.Alias)    //prompt for input 
-    let input = Console.ReadLine()
-    match isValid input Placing with    //validate input 
-    |true -> ()
-    | _ -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input invalid show error message
-           shootCow player state
-
-    let isShootable = 
-        match player = state.Player1 with                    //make sure cow exists
-        | true ->                       //player1 is shooting 
-            List.exists (fun x-> function  = strToPos input ) state.Player2.Cows  //checkfor cow in opponent list
-        | _ ->                          //player2 is shooting 
-            List.exists (findPos = strToPos input ) state.Player1.Cows  //checkfor cow in opponent list
-    match isShootable with 
-    |true -> List.filter () p
-
-
-//function to check if a mill has been made on the board
-let checkMill player state =
-    let playerPos = List.map findPos player.Cows //get a list of all positions the player has 
-    List.iter (fun x ->
-                    match x with
-                    |a,b,c -> 
-                        match
-                            List.exists (fun y ->y = a) playerPos &&
-                            List.exists (fun y ->y = b) playerPos &&
-                            List.exists (fun y ->y = c) playerPos with
-                            | true ->  shootCow player state
-                            | _ -> ()
-                        
-    ) millCombos  
-    
-  
+    //check for mills 
+    match checkMill inputPos player updatePlayer newState with 
+    | true -> shootCow updatePlayer newState 
+    | _ -> newState
+ 
+/// <summary>
+/// Function to run the placing phase of the game
+/// </summary>
+/// <param name="gameState">Curret State of the game</param>
 let rec runPlacingPhase gameState =
     printBoard gameState    //print initial board state 
 
-    let player1turn = (placePiece gameState.Player1 gameState)  //play player 1
+    //Player 1's turn 
+    let player1turn = (placePiece gameState.Player1 gameState)  //play player 1 
     printBoard player1turn  //update board
-    checkMill gameState.Player1 player1turn //check if a mill was made
+    checkPhase player1turn  //check if game should move to next phase
+    //---End Turn---
 
-    let player2turn = (placePiece gameState.Player2 gameState) //play player 2
+    //Player 2's turn 
+    let player2turn = (placePiece player1turn.Player2 player1turn) //play player 2
     printBoard player2turn  //update board
-    checkMill gameState.Player2 player2turn //check if a mill was made
-
     checkPhase player2turn  //check if game should move to next phase
+    // ---End Turn---
+
     runPlacingPhase  player2turn   //run next round of placing 
+
 //---> END Placing Phase Functions---------------------------------------
 
-let intializeGame =
 
+
+/// <summary>
+/// Function to initialize and run the game
+/// </summary>
+let initializeGame () =
     //Print Title  
     Console.WriteLine("MORABARABA \n
         Press Any Key to Start...
@@ -283,100 +420,11 @@ let intializeGame =
     //Initiate Players and Game state
     //let player1 = {Cows = []; MyMills = []; Alias = p1Name; Color = PlayerColor.Dark; PlacedCows = 0}
     //let player2 = {Cows = []; MyMills = []; Alias = p2Name; Color = PlayerColor.Light; PlacedCows = 0}
-    let player1 = {Cows = []; MyMills = []; Alias = "1"; Color = PlayerColor.Dark; PlacedCows = 0}
-    let player2 = {Cows = []; MyMills = []; Alias = "2"; Color = PlayerColor.Light; PlacedCows = 0}
+    let player1 = {Cows = []; MyMills = []; Alias = "1"; Color = PlayerColor.Dark; PlacedCows = 0;DeadCows = 0}
+    let player2 = {Cows = []; MyMills = []; Alias = "2"; Color = PlayerColor.Light; PlacedCows = 0; DeadCows = 0}
     let newGame = {GameState.Player1 = player1; Player2 = player2; isDraw = 0; phase = Placing}
     runPlacingPhase newGame
    
-
-
-let runGame =
-    //Inner function to repeat game loop
-    let innerGame state =   
-                        
-            
-            //get line of input from console and validate it/print any errors
-            
-            
-
-            
-
-            //function to shoot cows
-            let shootCows (a,b,c) = 
-                let updatePlayer = {updatePlayer with MyMills = (a,b,c)::updatePlayer.MyMills}  //update player to have new mill
-                Console.WriteLine("Mill! Please enter which cow you want to shoot.")
-                let input = 
-                    let tmp = Console.ReadLine().ToUpper()
-                    match isValid tmp currentState.phase with
-                    | true -> tmp
-                    | false -> ""
-                printErr input                    
-                let shootMe = strToPos input    //get cow to shoot
-                let playerCowsToKill =          //get player whose cows must be killed
-                    match currentState.Player1.Color = updatePlayer.Color with
-                    | true -> currentState.Player2
-                    |_ -> currentState.Player1
-                let killedCow newList =         //create new list without shot cow
-                    List.iter (fun myCow -> 
-                                match myCow with
-                                |Onboard (_,cow) -> 
-                                    match cow = shootMe with
-                                    | true -> []
-                                    | false -> cow::newList
-                                ()
-                                ) playerCowsToKill.Cows   
-                    newList
-                ()
-
-            //fuction to check for mills
-            let checkMills cowList =
-                List.iter (fun cowTuple ->
-                                match cowTuple with 
-                                | a,b,c ->
-                                    match List.exists (fun x ->             //check if cowTuple item exists in our player list 
-                                                            match x with 
-                                                            | Onboard (_,y) -> //extract cows position 
-                                                                match y with
-                                                                | a -> true     //check if cow in mill combo exists in player list 
-                                                                |_ -> false
-                                                        ) cowList with
-                                    | true ->
-                                        match List.exists (fun x ->             //check if cowTuple item exists in our player list 
-                                                            match x with 
-                                                            | Onboard (_,y) ->  //extract cows position 
-                                                                match y with
-                                                                | b -> true     //check if cow in mill combo exists in player list 
-                                                                |_ -> false
-                                                           ) cowList with 
-                                        | true ->
-                                            match List.exists (fun x ->             //check if cowTuple item exists in our player list 
-                                                                match x with 
-                                                                | Onboard (_,y) ->  //extract cows position 
-                                                                    match y with
-                                                                    | c -> true     //check if cow in mill combo exists in player list 
-                                                                    |_ -> false
-                                                            ) cowList with 
-                                            |true -> shootCows (a,b,c)
-                                            |_ -> ()
-                                        |_ -> ()
-                                    |_ -> ()
-                                |_ -> failwith "Oh, Oh. System Crash - Checking for mills"
-                ) millCombos
-
-            //checkMills updatePlayer.Cows
-            let updateState =           //'update' gamestate 
-                match player.Color with 
-                | Dark -> {state with Player1 = updatePlayer; Player2 = currentState.Player2}
-                | Light -> {state with Player1 = currentState.Player1; Player2 = updatePlayer}
-                | _ -> failwith "Critical Error. No Colours here"
-            printBoard updateState  //print board with changes 
-            let nextTurn () =
-                match player.Color with 
-                | Dark -> playerMove updateState.Player2 updateState
-                | Light -> playerMove updateState.Player1 updateState
-                | _ -> failwith "Critical Error. Failed to switch turns."
-            nextTurn ()
-        playerMove state.Player1 state
     
     
     

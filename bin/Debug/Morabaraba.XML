@@ -2,5 +2,74 @@
 <doc>
 <assembly><name>Morabaraba</name></assembly>
 <members>
+<member name="M:ProgramData.initializeGame``1">
+ <summary>
+ Function to initialize and run the game
+ </summary>
+</member>
+<member name="M:ProgramData.runPlacingPhase``1(ProgramData.GameState)">
+ <summary>
+ Function to run the placing phase of the game
+ </summary>
+ <param name="gameState">Curret State of the game</param>
+</member>
+<member name="M:ProgramData.placePiece(ProgramData.Player,ProgramData.GameState)">
+ <summary>
+ Function to palce players
+ </summary>
+ <param name="player">Player who is placing cows</param>
+ <param name="state">Current state of the game</param>
+</member>
+<member name="M:ProgramData.checkMill``3(``0,``1,ProgramData.Player,``2)">
+ <summary>
+ Function to check if a mill has been made on the board by the player
+ </summary>
+ <param name="player">Player who is being checked for a mill</param>
+ <param name="state">Current state of the game</param>
+</member>
+<member name="M:ProgramData.shootCow(ProgramData.Player,ProgramData.GameState)">
+ <summary>
+ Function to shoot cows 
+ </summary>
+ <param name="player">Player who is the shooter</param>
+ <param name="state">Current state of the game</param>
+</member>
+<member name="M:ProgramData.inMill(ProgramData.Position,Microsoft.FSharp.Collections.FSharpList{ProgramData.Cow})">
+ <summary>
+ Function to check if players cow is in a mill
+ </summary>
+ <param name="pos">Position of cow in possible mill</param>
+ <param name="cows">List of players cows</param>
+</member>
+<member name="M:ProgramData.printBoard(ProgramData.GameState)">
+ <summary>
+ Function to print the board based on game state 
+ </summary>
+ <param name="state">Current state of the game</param>
+</member>
+<member name="M:ProgramData.findPos(ProgramData.Cow)">
+ <summary>
+ Function to extract position from cow union
+ </summary>
+</member>
+<member name="M:ProgramData.isValid(System.String,ProgramData.Phase)">
+ <summary>
+ function to validate input in correct format
+ </summary>
+ <param name="str">input to validate</param>
+ <param name="phase">phase of the game</param>
+</member>
+<member name="M:ProgramData.getPosFromCows(Microsoft.FSharp.Collections.FSharpList{ProgramData.Cow})">
+ <summary>
+ Helper function that extracts a list of positions from a list of cows
+ </summary>
+ <param name="cows">List of cows to get positons from </param>
+</member>
+<member name="M:ProgramData.strToPos(System.String)">
+ <summary>
+ Helper function to convert string represenation of grid position to Position data type
+ </summary>
+ <param name="pos">position represented as a string</param>
+</member>
 </members>
 </doc>
