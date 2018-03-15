@@ -20,7 +20,7 @@
  <param name="player">Player who is placing cows</param>
  <param name="state">Current state of the game</param>
 </member>
-<member name="M:ProgramData.checkMill``3(``0,``1,ProgramData.Player,``2)">
+<member name="M:ProgramData.checkMill(ProgramData.Position,ProgramData.Player,ProgramData.Player,ProgramData.GameState)">
  <summary>
  Function to check if a mill has been made on the board by the player
  </summary>
@@ -36,21 +36,36 @@
 </member>
 <member name="M:ProgramData.inMill(ProgramData.Position,Microsoft.FSharp.Collections.FSharpList{ProgramData.Cow})">
  <summary>
- Function to check if players cow is in a mill
+ Helper function to check if players cow is in a mill that they own 
  </summary>
  <param name="pos">Position of cow in possible mill</param>
  <param name="cows">List of players cows</param>
+</member>
+<member name="M:ProgramData.getPossibleMills(ProgramData.Position)">
+ <summary>
+ Helper function to get all possible mills involving the given position 
+ </summary>
+ <param name="pos">position to get mills for</param>
+</member>
+<member name="M:ProgramData.checkPhase(ProgramData.GameState)">
+ <summary>
+ Function to determine if game should move to next phase
+ </summary>
+ <param name="state"></param>
+</member>
+<member name="M:ProgramData.isValidMove(ProgramData.Position,ProgramData.Player,ProgramData.Player)">
+ <summary>
+ Function to make sure that the move given is valid and check if position is already taken
+ </summary>
+ <param name="inputPos">Move that is being made</param>
+ <param name="player">Player making the move</param>
+ <param name="opponent">Opponent of player</param>
 </member>
 <member name="M:ProgramData.printBoard(ProgramData.GameState)">
  <summary>
  Function to print the board based on game state 
  </summary>
  <param name="state">Current state of the game</param>
-</member>
-<member name="M:ProgramData.findPos(ProgramData.Cow)">
- <summary>
- Function to extract position from cow union
- </summary>
 </member>
 <member name="M:ProgramData.isValid(System.String,ProgramData.Phase)">
  <summary>
@@ -64,6 +79,11 @@
  Helper function that extracts a list of positions from a list of cows
  </summary>
  <param name="cows">List of cows to get positons from </param>
+</member>
+<member name="M:ProgramData.getPos(ProgramData.Cow)">
+ <summary>
+ Function to extract position from cow union
+ </summary>
 </member>
 <member name="M:ProgramData.strToPos(System.String)">
  <summary>
