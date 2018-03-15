@@ -12,8 +12,8 @@ type Position =
 | G1 | G4 | G7
 |XX // denotes invalid position 
 
-//Discriminated Union to hold all possible moves from a position 
-let getAdjacentSquares = function
+//Function that returns Position list to hold all possible moves from a position 
+let getAdjacentPositions = function
     | A1 -> [D1; A4; B2]
     | A4 -> [A1; B4; A7]
     | A7 -> [A4; B6; D7]
@@ -149,6 +149,25 @@ type GameState = {
 }
 
 /// <summary>
+/// Generic Print error function that prints msg to console
+/// </summary>
+/// <param name="msg">Message to print</param>
+let printErr msg  =
+    Console.WriteLine(sprintf "Error!:\t{%s}" msg)
+
+/// <summary>
+/// Helper function to get players opponent
+/// </summary>
+/// <param name="player">Current player</param>
+/// <param name="state">Current GameState</param>
+let getOpponent player state = 
+    let opponent =
+        match player.Color = state.Player1.Color with
+        | true -> state.Player2
+        |_ -> state.Player1    
+    opponent
+
+/// <summary>
 /// Function to extract position from cow union
 /// </summary>
 let getPos = function 
@@ -167,7 +186,7 @@ let getPosFromCows (cows: Cow List) : Position List =
 /// </summary>
 /// <param name="str">input to validate</param>
 /// <param name="phase">phase of the game</param>
-let isValid str phase : bool =
+let isValidInput str phase : bool =
     match phase with  //check if in placing phase
     | Placing ->
         match (String.length str = 2) with
@@ -324,7 +343,7 @@ let rec shootCow player state  =
     Console.WriteLine(sprintf "Mill! %s please choose which cow you want to shoot" shooter.Alias)    //prompt for input 
     let input = Console.ReadLine().ToUpper()
     let inputPos = strToPos input
-    (match isValid input Placing with    //validate input (conditions for shooting are the same as in 'Placing' phase)
+    (match isValidInput input Placing with    //validate input (conditions for shooting are the same as in 'Placing' phase)
     |true -> state
     | _ -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input invalid show error message
            shootCow player state) |> ignore
@@ -414,6 +433,29 @@ let checkMill pos prevPlayerState newPlayerState state =
 //Moving Phase Functions---------------------------------------
 
 let movePiece player state =
+    (*
+        Rules for Moving:
+        --> Player can only move a cow to an adjacent position 
+        --> The only time the first rule can be igonored "unless their cows are flying"
+        
+        Algorithm:
+        1.Ask for player input
+        2.Validate input by applying rules 
+        3.Remove previous position from players cow list
+        4.Add new position to player cow list 
+    *)
+
+    //1
+    Console.WriteLine(sprintf "%s Choose a cow you wish to move (In the format of XX XX where XX denotes a Grid position)" player.Alias)
+    let input = Console.ReadLine()
+    let inputPosFrom = strToPos input
+
+    //2
+    let opponent = getOpponent player state
+    match (isValidInput input state.phase) && (isValidMove inputPos player opponent) with
+    | true -> ""
+    | _ -> ""
+
     state
 
 /// <summary>
@@ -455,31 +497,35 @@ let rec runMovingPhase gameState =
 /// <param name="player">Player who is placing cows</param>
 /// <param name="state">Current state of the game</param>
 let rec placePiece player state = 
-    let opponent =
-        match player.Color = state.Player1.Color with
-        | true -> state.Player2
-        |_ -> state.Player1
+    let opponent = getOpponent player state
     Console.WriteLine(sprintf "%s what is your move?" player.Alias) //ask for player move
     let input = Console.ReadLine().ToUpper(); //read line
     let inputPos = strToPos input   //convert input to position type
 
     //inner function to check for valid input
+    match (isValidInput input state.phase) && (isValidMove inputPos player opponent) with
+    | false -> printErr "Invalid Move! Please choose a correct Grid Position (X,Y) that is free"
+    | _ -> ()
+
+    (*
     let checkErr msg =  //print an error IF input is invalid 
                 match msg with
                 | "" -> 
                     Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input empty show error message
                     placePiece player state
-                | _ -> match isValid msg state.phase with
+                | _ -> match isValidInput msg state.phase with
                         | true -> state 
                         | _ -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input invalid show error message  
                                placePiece player state
     (checkErr input) |> ignore  //execute 'input check'
+    
 
     //check for valid move  
     (match isValidMove inputPos player opponent with //execute 'valid move' check 
     | true -> state 
     | _ ->  Console.WriteLine("Invalid Move!! Please type in a correct grid position that is FREE as indicated above.")    //if input invalid show error message  
             placePiece player state) |> ignore
+    *)
 
     //update player and game states 
     let newCow = Onboard (player.Color, inputPos)         //create new cow  

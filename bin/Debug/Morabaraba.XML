@@ -20,6 +20,12 @@
  <param name="player">Player who is placing cows</param>
  <param name="state">Current state of the game</param>
 </member>
+<member name="M:ProgramData.runMovingPhase(ProgramData.GameState)">
+ <summary>
+ Function to run the moving phase of the game 
+ </summary>
+ <param name="state">State of the game</param>
+</member>
 <member name="M:ProgramData.checkMill(ProgramData.Position,ProgramData.Player,ProgramData.Player,ProgramData.GameState)">
  <summary>
  Function to check if a mill has been made on the board by the player
@@ -67,9 +73,9 @@
  </summary>
  <param name="state">Current state of the game</param>
 </member>
-<member name="M:ProgramData.isValid(System.String,ProgramData.Phase)">
+<member name="M:ProgramData.isValidInput(System.String,ProgramData.Phase)">
  <summary>
- function to validate input in correct format
+ function to make sure input is in correct format
  </summary>
  <param name="str">input to validate</param>
  <param name="phase">phase of the game</param>
@@ -84,6 +90,19 @@
  <summary>
  Function to extract position from cow union
  </summary>
+</member>
+<member name="M:ProgramData.getOpponent(ProgramData.Player,ProgramData.GameState)">
+ <summary>
+ Helper function to get players opponent
+ </summary>
+ <param name="player">Current player</param>
+ <param name="state">Current GameState</param>
+</member>
+<member name="M:ProgramData.printErr(System.String)">
+ <summary>
+ 
+ </summary>
+ <param name="msg"></param>
 </member>
 <member name="M:ProgramData.strToPos(System.String)">
  <summary>
