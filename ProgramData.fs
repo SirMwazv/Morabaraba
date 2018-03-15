@@ -308,13 +308,17 @@ let checkMill pos prevPlayerState newPlayerState state =
             Get list of mills player has after moving 
             Compare the two and if new mills found return true 
         *)
-    let possibleMills = getPossibleMills pos        //possible mills with this position 
+    let possibleMills = getPossibleMills pos        //possible mills with this position
     let playerPos = List.map getPos newPlayerState.Cows //get a list of all positions of the cows the player has AFTER moving 
     let prevMills = prevPlayerState.MyMills     //mills player had before moving 
 
     let nextMills =                             //mills player has after moving 
         //filter out mills i already have by removing previous mills from all possible mills (from this position)
-        let filterMills = List.filter (fun x-> List.exists (fun y -> match x = y with | true -> false | _ -> true) prevMills) possibleMills //mills that i possibly have but havent checked for
+        let filterMills = List.filter (fun x-> 
+                                        List.exists (fun y ->
+                                                    match x = y with 
+                                                    | true -> false 
+                                                    | _ -> true) prevMills) possibleMills //mills that i possibly have but havent checked for
         
         let millsIhave = List.filter (fun (x,y,z) ->        //check if i have any of the possible mills and return the list 
                                                 match
@@ -394,7 +398,9 @@ let rec placePiece player state =
     let checkMove () = // check if position is already taken 
         let myMove = Onboard (player.Color,inputPos) //my cow
         let myOpponentMove = Onboard (opponent.Color, inputPos) //opponents cow
-        match (List.exists (fun x -> myMove = x) player.Cows) && (List.exists (fun x -> myOpponentMove = x) opponent.Cows) with    //check if spot is taken
+        let isMyPosTaken = (List.exists (fun x -> myMove = x) player.Cows) 
+        let isOpponentPosTaken = (List.exists (fun x -> myOpponentMove = x) opponent.Cows)
+        match isMyPosTaken || isOpponentPosTaken with    //check if spot is taken
         | true -> Console.WriteLine("Invalid Move!! Please type in a correct grid position that is free as indicated above.")    //if input invalid show error message  
                   placePiece player state
         | _ -> match inputPos with        //check if position entered is valid 
