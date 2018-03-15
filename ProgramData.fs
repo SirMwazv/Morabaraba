@@ -12,6 +12,7 @@ type Position =
 | G1 | G4 | G7
 |XX // denotes invalid position 
 
+//Discriminated Union to hold all possible moves from a position 
 let getAdjacentSquares = function
     | A1 -> [D1; A4; B2]
     | A4 -> [A1; B4; A7]
@@ -162,7 +163,7 @@ let getPosFromCows (cows: Cow List) : Position List =
     List.map getPos cows
 
 /// <summary>
-/// function to validate input in correct format
+/// function to make sure input is in correct format
 /// </summary>
 /// <param name="str">input to validate</param>
 /// <param name="phase">phase of the game</param>
@@ -237,10 +238,42 @@ let printBoard (state:GameState) =
     -."\n"; +.A1; -."----------"; +.D1; -."----------"; +.G1
     -."\n"
 
-let checkPhase state =
-    ()
+/// <summary>
+/// Function to make sure that the move given is valid and check if position is already taken
+/// </summary>
+/// <param name="inputPos">Move that is being made</param>
+/// <param name="player">Player making the move</param>
+/// <param name="opponent">Opponent of player</param>
+let isValidMove inputPos player opponent = 
+        match inputPos with //check if position entered is valid 
+        | XX -> false
+        | _ ->
+            let allPlayerCows = getPosFromCows player.Cows      //get positions of all of players cows
+            let allOponentCows = getPosFromCows opponent.Cows   //get positions of opponents cows
+            let isMyPosTaken = (List.exists (fun x -> inputPos = x) allPlayerCows)      //check if player already has this position
+            let isOpponentPosTaken = (List.exists (fun x -> inputPos = x) allOponentCows)//check if opponent already has position 
+            match isMyPosTaken || isOpponentPosTaken with    //check if spot is taken
+            | true -> false
+            | _ -> true
 
-//Placing Phase Functions---------------------------------------
+/// <summary>
+/// Function to determine if game should move to next phase
+/// </summary>
+/// <param name="state"></param>
+let checkPhase state = 
+    match (state.phase) with
+    | Placing ->
+            let Player1 = state.Player1
+            let Player2 = state.Player2
+            let PlacedPlayer1 = Player1.PlacedCows
+            let PlacedPlayer2 = Player2.PlacedCows
+            match PlacedPlayer1 with
+            | 12 -> match PlacedPlayer2 with 
+                    |12 -> true
+                    |_ -> false
+            | _ -> false
+    | Moving -> false
+    | _ -> false
 
 /// <summary>
 /// Helper function to get all possible mills involving the given position 
@@ -378,33 +411,43 @@ let checkMill pos prevPlayerState newPlayerState state =
     | [] -> (false, state)
     | n::_ -> (true, updatedGameState)
 
-    //let isUsedMill =            //check if mill already exists in players list
-    //    List.exists ( fun x ->
-    //                    List.exists (fun y -> x=y) millCombos
-    //    ) newPlayerState.MyMills        
+//Moving Phase Functions---------------------------------------
 
-    //let checkForMill = 
-    //                    List.map (fun x ->       //iterate through mill combos and check if a mill exists that a player has made
-    //                            match x with
-    //                            |a,b,c -> 
-    //                                match
-    //                                    List.exists (fun y ->y = a) playerPos &&
-    //                                    List.exists (fun y ->y = b) playerPos &&
-    //                                    List.exists (fun y ->y = c) playerPos with
-    //                                    | true ->  true
-    //                                    | _ -> false                        
-    //                    ) millCombos
-    
-    //let millAlreadyUsed =       //make sure that mills aren't being reused (mills already made previously and mills broken in the last round) 
-    //    //let isAlreadyMade =
-    //    //    match List.map (fun (x,y,z) -> 
-    //    //        List.exists ()
-    //    //    ) player.MyMills with
-    //    true
+let movePiece player state =
+    state
 
-    //match (List.exists (fun x -> x = true) checkForMill) && not millAlreadyUsed with // if a mill has been made then return true else return false 
-    //| true -> true
-    //| _ -> false
+/// <summary>
+/// Function to run the moving phase of the game 
+/// </summary>
+/// <param name="state">State of the game</param>
+let rec runMovingPhase gameState =
+    printBoard gameState    //print initial board state 
+
+    //Player 1's turn 
+    let player1turn = (movePiece gameState.Player1 gameState)  //play player 1 
+    printBoard player1turn  //update board
+
+    //todo change this to check for draws / wins 
+    (match checkPhase player1turn  with //check if game should move to next phase
+    | true -> runMovingPhase {player1turn with phase = Moving}
+    | _ -> "") |> ignore
+    //---End Turn---
+
+    //Player 2's turn 
+    let player2turn = (movePiece player1turn.Player2 player1turn) //play player 2
+    printBoard player2turn  //update board
+
+    //todo change this to check for draws / wins 
+    (match checkPhase player2turn  with //check if game should move to next phase
+    | true -> runMovingPhase {player2turn with phase = Moving}
+    | _ -> "") |> ignore
+    // ---End Turn---
+
+    ""
+
+//---> END Moving Phase Functions---------------------------------------
+
+//Placing Phase Functions---------------------------------------
 
 /// <summary>
 /// Function to palce players
@@ -418,7 +461,7 @@ let rec placePiece player state =
         |_ -> state.Player1
     Console.WriteLine(sprintf "%s what is your move?" player.Alias) //ask for player move
     let input = Console.ReadLine().ToUpper(); //read line
-    let inputPos = strToPos input
+    let inputPos = strToPos input   //convert input to position type
 
     //inner function to check for valid input
     let checkErr msg =  //print an error IF input is invalid 
@@ -432,20 +475,11 @@ let rec placePiece player state =
                                placePiece player state
     (checkErr input) |> ignore  //execute 'input check'
 
-    //inner function to check for valid move 
-    let checkMove () = // check if position is already taken 
-        let myMove = Onboard (player.Color,inputPos) //my cow
-        let myOpponentMove = Onboard (opponent.Color, inputPos) //opponents cow
-        let isMyPosTaken = (List.exists (fun x -> myMove = x) player.Cows) 
-        let isOpponentPosTaken = (List.exists (fun x -> myOpponentMove = x) opponent.Cows)
-        match isMyPosTaken || isOpponentPosTaken with    //check if spot is taken
-        | true -> Console.WriteLine("Invalid Move!! Please type in a correct grid position that is free as indicated above.")    //if input invalid show error message  
-                  placePiece player state
-        | _ -> match inputPos with        //check if position entered is valid 
-                | XX -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input invalid show error message  
-                        placePiece player state
-                | _ -> state
-    checkMove () |> ignore //execute 'valid move' check 
+    //check for valid move  
+    (match isValidMove inputPos player opponent with //execute 'valid move' check 
+    | true -> state 
+    | _ ->  Console.WriteLine("Invalid Move!! Please type in a correct grid position that is FREE as indicated above.")    //if input invalid show error message  
+            placePiece player state) |> ignore
 
     //update player and game states 
     let newCow = Onboard (player.Color, inputPos)         //create new cow  
@@ -476,20 +510,22 @@ let rec runPlacingPhase gameState =
     //Player 1's turn 
     let player1turn = (placePiece gameState.Player1 gameState)  //play player 1 
     printBoard player1turn  //update board
-    checkPhase player1turn  //check if game should move to next phase
+    (match checkPhase player1turn  with //check if game should move to next phase
+    | true -> runMovingPhase {player1turn with phase = Moving}
+    | _ -> "") |> ignore
     //---End Turn---
 
     //Player 2's turn 
     let player2turn = (placePiece player1turn.Player2 player1turn) //play player 2
     printBoard player2turn  //update board
-    checkPhase player2turn  //check if game should move to next phase
+    (match checkPhase player2turn  with //check if game should move to next phase
+    | true -> runMovingPhase {player2turn with phase = Moving}
+    | _ -> "") |> ignore
     // ---End Turn---
 
     runPlacingPhase  player2turn   //run next round of placing 
 
 //---> END Placing Phase Functions---------------------------------------
-
-
 
 /// <summary>
 /// Function to initialize and run the game

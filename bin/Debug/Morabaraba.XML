@@ -47,6 +47,20 @@
  </summary>
  <param name="pos">position to get mills for</param>
 </member>
+<member name="M:ProgramData.checkPhase(ProgramData.GameState)">
+ <summary>
+ Function to determine if game should move to next phase
+ </summary>
+ <param name="state"></param>
+</member>
+<member name="M:ProgramData.isValidMove(ProgramData.Position,ProgramData.Player,ProgramData.Player)">
+ <summary>
+ Function to make sure that the move given is valid and check if position is already taken
+ </summary>
+ <param name="inputPos">Move that is being made</param>
+ <param name="player">Player making the move</param>
+ <param name="opponent">Opponent of player</param>
+</member>
 <member name="M:ProgramData.printBoard(ProgramData.GameState)">
  <summary>
  Function to print the board based on game state 
