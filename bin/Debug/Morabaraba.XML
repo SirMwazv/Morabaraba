@@ -2,7 +2,7 @@
 <doc>
 <assembly><name>Morabaraba</name></assembly>
 <members>
-<member name="M:ProgramData.initializeGame">
+<member name="M:ProgramData.initializeGame``1">
  <summary>
  Function to initialize and run the game
  </summary>
@@ -48,6 +48,13 @@
  <param name="newPos">Position of new cow</param>
  <param name="player">Player who cows belong to</param>
 </member>
+<member name="M:ProgramData.shootCow(ProgramData.Player,ProgramData.GameState)">
+ <summary>
+ Function to shoot cows 
+ </summary>
+ <param name="player">Player who is the shooter</param>
+ <param name="state">Current state of the game</param>
+</member>
 <member name="M:ProgramData.isFlying(ProgramData.Player)">
  <summary>
  Helper function to determine if player has flying cows
@@ -59,13 +66,6 @@
  Helper function to fly a players cows and return that cow list
  </summary>
  <param name="player"></param>
-</member>
-<member name="M:ProgramData.shootCow(ProgramData.Player,ProgramData.GameState)">
- <summary>
- Function to shoot cows 
- </summary>
- <param name="player">Player who is the shooter</param>
- <param name="state">Current state of the game</param>
 </member>
 <member name="M:ProgramData.inMill(ProgramData.Position,Microsoft.FSharp.Collections.FSharpList{ProgramData.Cow})">
  <summary>

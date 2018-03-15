@@ -365,10 +365,11 @@ let rec shootCow player state  =
     Console.WriteLine(sprintf "Mill! %s please choose which cow you want to shoot" shooter.Alias)    //prompt for input 
     let input = Console.ReadLine().ToUpper()
     let inputPos = strToPos input
-    (match isValidInput input Placing with    //validate input (conditions for shooting are the same as in 'Placing' phase)
-    |true -> state
-    | _ -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input invalid show error message
-           shootCow player state) |> ignore
+    let state =
+        match isValidInput input Placing with    //validate input (conditions for shooting are the same as in 'Placing' phase)
+        |true -> state
+        | _ -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input invalid show error message
+               shootCow player state
 
     let isShootable =   //value to show if cow is shootable (not in mill, empty cell or cow belonging to player)
         //checkfor cow in opponent list (implicitly makes sure we dont shoot our own cow)
@@ -377,11 +378,11 @@ let rec shootCow player state  =
         let notInMill = not (inMill inputPos shootee.Cows)
         canShoot && notInMill
 
-    
-    (match isShootable with  //check if cow is shootable 
-    | false -> Console.WriteLine(sprintf "Error! %s, you Cannot Shoot this cow! Please Choose Another Cow." player.Alias)   //if not shootable display error and retry 
-               shootCow player state
-    |_ -> state)  |> ignore //else do nothing and carry on...
+    let state =
+        match isShootable with  //check if cow is shootable 
+        | false -> Console.WriteLine(sprintf "Error! %s, you Cannot Shoot this cow! Please Choose Another Cow." player.Alias)   //if not shootable display error and retry 
+                   shootCow player state
+        |_ -> state//else do nothing and carry on...
 
     //"shoot" the cow (remove it from shootee's list and increment killed cows)
     let newCows = List.filter (fun x ->     //filter the shootee's cows and remove the cow that has been shot 
