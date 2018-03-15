@@ -2,7 +2,7 @@
 <doc>
 <assembly><name>Morabaraba</name></assembly>
 <members>
-<member name="M:ProgramData.initializeGame``1">
+<member name="M:ProgramData.initializeGame">
  <summary>
  Function to initialize and run the game
  </summary>
@@ -26,12 +26,39 @@
  </summary>
  <param name="state">State of the game</param>
 </member>
+<member name="M:ProgramData.movePiece(ProgramData.Player,ProgramData.GameState)">
+ <summary>
+ Function to move players piece and return updated game state
+ </summary>
+ <param name="player">Player who is making move</param>
+ <param name="state">Current game state</param>
+</member>
 <member name="M:ProgramData.checkMill(ProgramData.Position,ProgramData.Player,ProgramData.Player,ProgramData.GameState)">
  <summary>
  Function to check if a mill has been made on the board by the player
  </summary>
  <param name="player">Player who is being checked for a mill</param>
  <param name="state">Current state of the game</param>
+</member>
+<member name="M:ProgramData.switchCow(ProgramData.Position,ProgramData.Position,ProgramData.Player)">
+ <summary>
+ Helper Function to swap cows in player list of cows
+ </summary>
+ <param name="oldPos">Position of old cow</param>
+ <param name="newPos">Position of new cow</param>
+ <param name="player">Player who cows belong to</param>
+</member>
+<member name="M:ProgramData.isFlying(ProgramData.Player)">
+ <summary>
+ Helper function to determine if player has flying cows
+ </summary>
+ <param name="player"></param>
+</member>
+<member name="M:ProgramData.flyCows(ProgramData.Player)">
+ <summary>
+ Helper function to fly a players cows and return that cow list
+ </summary>
+ <param name="player"></param>
 </member>
 <member name="M:ProgramData.shootCow(ProgramData.Player,ProgramData.GameState)">
  <summary>
@@ -100,9 +127,9 @@
 </member>
 <member name="M:ProgramData.printErr(System.String)">
  <summary>
- 
+ Generic Print error function that prints msg to console
  </summary>
- <param name="msg"></param>
+ <param name="msg">Message to print</param>
 </member>
 <member name="M:ProgramData.strToPos(System.String)">
  <summary>

@@ -330,6 +330,28 @@ let inMill (pos: Position ) (cows : Cow List) =
     myMills
 
 /// <summary>
+/// Helper function to fly a players cows and return that cow list
+/// </summary>
+/// <param name="player"></param>
+let flyCows player =
+    List.map (fun x ->
+                    match x with 
+                    | Onboard (x,y) -> Flying (x,y)
+                    | _ -> x
+    ) player.Cows
+
+/// <summary>
+/// Helper function to determine if player has flying cows
+/// </summary>
+/// <param name="player"></param>
+let isFlying player = 
+    List.exists (fun x ->
+                    match x with 
+                    | Flying _ -> true
+                    | _ -> false
+    ) player.Cows
+
+/// <summary>
 /// Function to shoot cows 
 /// </summary>
 /// <param name="player">Player who is the shooter</param>
@@ -372,11 +394,46 @@ let rec shootCow player state  =
                     ) shootee.Cows
 
     let increment = player.DeadCows + 1 //increment dead cows for player 
-    let updateShooteePlayer = {shootee with Cows = newCows; DeadCows = increment} //update the shootee player's state 
+    let updateShooteePlayer =   //update the shootee player's state 
+        match increment with    //check if players cows should now fly 
+        |9 -> 
+            let tmpPlayer = {shootee with Cows = newCows; DeadCows = increment} 
+            let flyingCows = flyCows tmpPlayer
+            {tmpPlayer with Cows = flyingCows}
+        | _ -> {shootee with Cows = newCows; DeadCows = increment}
 
     match shooter.Color = state.Player1.Color with  //determine which player to update and then return game state 
     | true -> {state with Player2 = updateShooteePlayer}
     | _ -> {state with Player1 = updateShooteePlayer}
+
+/// <summary>
+/// Helper Function to swap cows in player list of cows
+/// </summary>
+/// <param name="oldPos">Position of old cow</param>
+/// <param name="newPos">Position of new cow</param>
+/// <param name="player">Player who cows belong to</param>
+let switchCow oldPos newPos player =
+
+    let oldCow =    //get cow to remove
+        match isFlying player with
+        |true -> Flying (player.Color,oldPos)
+        | _ -> Onboard (player.Color,oldPos)
+    let newCow =    //get cow to replace with 
+        match isFlying player with
+        |true -> Flying (player.Color,newPos)
+        | _ -> Onboard (player.Color,newPos)
+
+    let newCowList =
+        let rmvCow =
+            List.filter (fun x ->       //filter out old position 
+                            match x = oldCow with
+                            | true -> false
+                            | _ -> true
+            ) player.Cows
+        let addCow = newCow::rmvCow
+        addCow
+    {player with Cows = newCowList}
+
 
 /// <summary>
 /// Function to check if a mill has been made on the board by the player
@@ -432,31 +489,84 @@ let checkMill pos prevPlayerState newPlayerState state =
 
 //Moving Phase Functions---------------------------------------
 
-let movePiece player state =
+/// <summary>
+/// Function to move players piece and return updated game state
+/// </summary>
+/// <param name="player">Player who is making move</param>
+/// <param name="state">Current game state</param>
+let rec movePiece player state =
     (*
         Rules for Moving:
-        --> Player can only move a cow to an adjacent position 
-        --> The only time the first rule can be igonored "unless their cows are flying"
+        --> Player can only move a cow to an adjacent position 1
+        --> The only time the first rule can be igonored "unless their cows are flying" 1
         
         Algorithm:
         1.Ask for player input
-        2.Validate input by applying rules 
-        3.Remove previous position from players cow list
-        4.Add new position to player cow list 
+        2.Validate input 
+        3.Apply rules 
+        4.Remove previous position from players cow list
+        5.Add new position to player cow list 
     *)
 
-    //1
-    Console.WriteLine(sprintf "%s Choose a cow you wish to move (In the format of XX XX where XX denotes a Grid position)" player.Alias)
-    let input = Console.ReadLine()
-    let inputPosFrom = strToPos input
 
-    //2
+    Console.WriteLine(sprintf "%s, Choose a cow you wish to move (In the format of \"(X,Y) (X,Y)\" where (X,Y) denotes a Grid position)" player.Alias)
+    let input = Console.ReadLine().ToUpper()
+
+    //validate input
+    let state = 
+        match isValidInput input state.phase with
+        | true -> state 
+        | _  -> printErr "Invalid Input! Please choose a correct Grid Position (X,Y) that is free"
+                movePiece player state
+
+    //extract positions
+    let strFrom = input.[..1]
+    let strTo = input.[3..4] 
+    let inputPosFrom = strToPos strFrom
+    let inputPosTo = strToPos strTo  
     let opponent = getOpponent player state
-    match (isValidInput input state.phase) && (isValidMove inputPos player opponent) with
-    | true -> ""
-    | _ -> ""
 
-    state
+    //firstly make sure i can actually move this cow
+    match List.exists (fun x -> x = inputPosFrom) (getPosFromCows player.Cows) with
+    | true -> state
+    | _ -> printErr "Invalid Move! You can't move a cow you dont have"
+           movePiece player state
+
+    //validate move
+    match isValidMove inputPosTo player opponent with 
+    | true -> state
+    | _ -> 
+        printErr "Invalid Move! Please enter a correct Grid Position (X,Y) that is free"
+        movePiece player state
+
+    //apply rules 
+    let possibleMoves = getAdjacentPositions inputPosFrom   //get possible moves for a non-flying cow 
+    let canMove = List.exists (fun x-> x = inputPosTo ) possibleMoves   //check if i can move to this position for non-flying cow 
+    let canFly = isFlying player                 //check if players cows are flying
+     
+    match canMove || canFly with    //make sure the cow can move/fly to new position
+    |true -> ()
+    | _ -> printErr "Invalid Move! This cow cannot fly :("
+
+    let movedPlayer = switchCow inputPosFrom inputPosTo player  //and finally move the cow
+    
+    let newState =
+        match player.Color = state.Player1.Color with   //update gamestate 
+        | true -> {state with Player1 = movedPlayer}
+        | _ -> {state with Player2 = movedPlayer}
+
+    printBoard newState
+
+    //check for mills 
+    let isMill = checkMill inputPosTo player movedPlayer newState
+    match isMill with //if mills were made then shoot cow else return game state 
+    | true,nextState -> 
+                        match movedPlayer.Color = nextState.Player1.Color with 
+                        | true -> shootCow nextState.Player1 nextState 
+                        | _ -> shootCow nextState.Player2 nextState 
+    | _ -> newState
+    
+    
 
 /// <summary>
 /// Function to run the moving phase of the game 
@@ -504,28 +614,8 @@ let rec placePiece player state =
 
     //inner function to check for valid input
     match (isValidInput input state.phase) && (isValidMove inputPos player opponent) with
-    | false -> printErr "Invalid Move! Please choose a correct Grid Position (X,Y) that is free"
+    | false -> printErr "Invalid Move! Please enter a correct Grid Position (X,Y) that is free"
     | _ -> ()
-
-    (*
-    let checkErr msg =  //print an error IF input is invalid 
-                match msg with
-                | "" -> 
-                    Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input empty show error message
-                    placePiece player state
-                | _ -> match isValidInput msg state.phase with
-                        | true -> state 
-                        | _ -> Console.WriteLine("Invalid Move!! Please type in a correct grid position as indicated above.")    //if input invalid show error message  
-                               placePiece player state
-    (checkErr input) |> ignore  //execute 'input check'
-    
-
-    //check for valid move  
-    (match isValidMove inputPos player opponent with //execute 'valid move' check 
-    | true -> state 
-    | _ ->  Console.WriteLine("Invalid Move!! Please type in a correct grid position that is FREE as indicated above.")    //if input invalid show error message  
-            placePiece player state) |> ignore
-    *)
 
     //update player and game states 
     let newCow = Onboard (player.Color, inputPos)         //create new cow  
@@ -584,23 +674,30 @@ let initializeGame () =
     Console.ReadKey() |> ignore
 
     //Setup Player Names 
-    //Console.WriteLine("Player1 Choose your Nickname") 
-    //let p1Name = Console.ReadLine()
-    //Console.WriteLine("Player2 Choose your Nickname") 
-    //let p2Name = Console.ReadLine()
-    //Console.Clear()
+    Console.WriteLine("Player1 Choose your Nickname") 
+    let p1Name = Console.ReadLine()
+    Console.WriteLine("Player2 Choose your Nickname") 
+    let p2Name = Console.ReadLine()
+    Console.Clear()
 
     //Initialize Data
     //Initiate Players and Game state
-    //let player1 = {Cows = []; MyMills = []; Alias = p1Name; Color = PlayerColor.Dark; PlacedCows = 0}
-    //let player2 = {Cows = []; MyMills = []; Alias = p2Name; Color = PlayerColor.Light; PlacedCows = 0}
-    let player1 = {Cows = []; MyMills = []; Alias = "1"; Color = PlayerColor.Dark; PlacedCows = 0;DeadCows = 0}
-    let player2 = {Cows = []; MyMills = []; Alias = "2"; Color = PlayerColor.Light; PlacedCows = 0; DeadCows = 0}
+    let player1 = {Cows = []; MyMills = []; Alias = p1Name; Color = PlayerColor.Dark; PlacedCows = 0;DeadCows=0}
+    let player2 = {Cows = []; MyMills = []; Alias = p2Name; Color = PlayerColor.Light; PlacedCows = 0;DeadCows=0}
     let newGame = {GameState.Player1 = player1; Player2 = player2; isDraw = 0; phase = Placing}
     runPlacingPhase newGame
+
+    //tests for placing 
+    //let player1 = {Cows = []; MyMills = []; Alias = "1"; Color = PlayerColor.Dark; PlacedCows = 0;DeadCows = 0}
+    //let player2 = {Cows = []; MyMills = []; Alias = "2"; Color = PlayerColor.Light; PlacedCows = 0; DeadCows = 0}
+    //let newGame = {GameState.Player1 = player1; Player2 = player2; isDraw = 0; phase = Placing}
+    //runPlacingPhase newGame
    
-    
-    
+    //tests for moving 
+    //let player1 = {Cows = [Onboard (Dark,A1);Onboard (Dark,C4);Onboard (Dark,G7);]; MyMills = []; Alias = "1"; Color = PlayerColor.Dark; PlacedCows = 12;DeadCows = 9}
+    //let player2 = {Cows = [Onboard (Light,G1);Onboard (Light,E4);Onboard (Light,A7)]; MyMills = []; Alias = "2"; Color = PlayerColor.Light; PlacedCows = 12; DeadCows = 9}
+    //let newGame = {GameState.Player1 = player1; Player2 = player2; isDraw = 0; phase = Moving}
+    //runMovingPhase newGame
     
     
      
